@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta tags and libraries remain the same -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Progress Tracker with Lesson Title</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"], input[type="date"], textarea, select {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            margin-top: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin-top: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .remove-btn {
+            background-color: #e74c3c;
+        }
+        .remove-btn:hover {
+            background-color: #c0392b;
+        }
+        .edit-btn {
+            background-color: #f1c40f;
+        }
+        .edit-btn:hover {
+            background-color: #d4ac0d;
+        }
+        .footer-buttons button {
+            margin-right: 10px;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 5px;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ecf0f1;
+            padding: 12px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .student-number {
+            width: 50px;
+        }
+        .performance-select {
+            margin-top: 5px;
+        }
+        .note-input {
+            margin-top: 5px;
+            width: calc(100% - 20px);
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        /* Adjusted Performance Level Colors */
+        tr.student-weak {
+            background-color: #ff4d4d !important; /* Bright red */
+        }
+        tr.student-average {
+            background-color: #ffcc00 !important; /* Deep yellow */
+        }
+        tr.student-strong {
+            background-color: #33cc33 !important; /* Strong green */
+        }
+
+        /* Checkbox and Input Alignment */
+        .checkbox-cell input[type="checkbox"] {
+            transform: scale(1.2);
+            margin-top: 5px;
+        }
+        .has-book-cell {
+            text-align: center;
+        }
+        .task-cell {
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            th, td {
+                padding: 8px;
+            }
+            .note-input {
+                width: 100%;
+            }
+        }
+    </style>
+    <!-- Include jsPDF and html2canvas libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<h1>Student Progress Tracker</h1>
+
+<div class="input-group">
+    <label for="selectedDate">Select Date:</label>
+    <input type="date" id="selectedDate">
+</div>
+
+<!-- New Display for Selected Date and Day -->
+<h3 id="displayDate"></h3>
+
+<!-- New Input Group for Lesson Title -->
+<div class="input-group">
+    <label for="lessonTitle">Lesson Title:</label>
+    <input type="text" id="lessonTitle" placeholder="Enter lesson title">
+</div>
+
+<h2>Add Students in Bulk</h2>
+<div class="input-group">
+    <label for="bulkStudents">Student Names:</label>
+    <textarea id="bulkStudents" placeholder="Enter student names, one per line"></textarea>
+    <button onclick="addStudentsBulk()">Add Students</button>
+    <p id="studentError" class="error"></p>
+</div>
+
+<h2>Add Task</h2>
+<div class="input-group">
+    <label for="taskName">Task Name:</label>
+    <input type="text" id="taskName" placeholder="Enter task name">
+    <button onclick="addTask()">Add Task</button>
+    <p id="taskError" class="error"></p>
+</div>
+
+<!-- Display Lesson Title Above the Table -->
+<h3 id="displayLessonTitle"></h3>
+
+<h2>Progress Table</h2>
+<div id="printableArea">
+    <!-- This div will contain all elements to be included in the PDF -->
+    <!-- Display Date and Day -->
+    <h3 id="printDate"></h3>
+    <!-- Display Lesson Title -->
+    <h3 id="printLessonTitle"></h3>
+    <table id="progressTable">
+        <thead>
+            <tr>
+                <th class="student-number">#</th>
+                <th>Student Name</th>
+                <th>Has Book</th>
+                <!-- Task headers will be inserted here -->
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Student rows will be inserted here -->
+        </tbody>
+    </table>
+</div>
+
+<div class="footer-buttons">
+    <button onclick="downloadPDF()">Download as PDF</button>
+    <button onclick="clearData()">Clear Data for Selected Date</button>
+</div>
+
+<script>
+    let trackerData = JSON.parse(localStorage.getItem('trackerData')) || {};
+    let selectedDate = document.getElementById('selectedDate').value || new Date().toISOString().split('T')[0];
+    let lessonTitle = '';
+    let students = [];
+    let tasks = [];
+
+    function saveData() {
+        trackerData[selectedDate] = { lessonTitle, students, tasks };
+        localStorage.setItem('trackerData', JSON.stringify(trackerData));
+    }
+
+    function loadData() {
+        const dataForDate = trackerData[selectedDate] || { lessonTitle: '', students: [], tasks: [] };
+        lessonTitle = dataForDate.lessonTitle || '';
+        students = dataForDate.students;
+        tasks = dataForDate.tasks;
+        document.getElementById('lessonTitle').value = lessonTitle;
+        document.getElementById('displayLessonTitle').textContent = lessonTitle ? `Lesson: ${lessonTitle}` : '';
+        updateDisplayDate();
+    }
+
+    function updateDisplayDate() {
+        const date = new Date(selectedDate);
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedDate = date.toLocaleDateString(undefined, options);
+        document.getElementById('displayDate').textContent = `Selected Date: ${formattedDate}`;
+        document.getElementById('printDate').textContent = `Date: ${formattedDate}`;
+        document.getElementById('printLessonTitle').textContent = lessonTitle ? `Lesson: ${lessonTitle}` : '';
+    }
+
+    document.getElementById('selectedDate').addEventListener('change', function() {
+        selectedDate = this.value;
+        loadData();
+        updateTable();
+    });
+
+    document.getElementById('lessonTitle').addEventListener('input', function() {
+        lessonTitle = this.value.trim();
+        document.getElementById('displayLessonTitle').textContent = lessonTitle ? `Lesson: ${lessonTitle}` : '';
+        document.getElementById('printLessonTitle').textContent = lessonTitle ? `Lesson: ${lessonTitle}` : '';
+        saveData();
+    });
+
+    function addStudentsBulk() {
+        const bulkField = document.getElementById('bulkStudents');
+        const errorField = document.getElementById('studentError');
+        const names = bulkField.value.split('\n').map(name => name.trim()).filter(name => name);
+
+        const newStudents = names.filter(name => !students.some(s => s.name === name));
+        newStudents.forEach(name => students.push({ name, performance: 'average', hasBook: false }));
+        saveData();
+
+        updateTable();
+        bulkField.value = '';
+        errorField.textContent = `Added ${newStudents.length} new student(s). ${names.length - newStudents.length} duplicate(s) ignored.`;
+    }
+
+    function addTask() {
+        const taskField = document.getElementById('taskName');
+        const errorField = document.getElementById('taskError');
+        const task = taskField.value.trim();
+
+        if (task) {
+            if (!tasks.includes(task)) {
+                tasks.push(task);
+                saveData();
+                updateTable();
+                taskField.value = '';
+                errorField.textContent = '';
+            } else {
+                errorField.textContent = 'This task is already added for the selected date.';
+            }
+        } else {
+            errorField.textContent = 'Please enter a task name.';
+        }
+    }
+
+    function removeStudent(studentName) {
+        students = students.filter(student => student.name !== studentName);
+        saveData();
+        updateTable();
+    }
+
+    function editStudentName(oldName) {
+        const newName = prompt("Enter new name:", oldName);
+        if (newName && newName.trim() !== '') {
+            if (students.some(s => s.name === newName.trim())) {
+                alert('A student with this name already exists.');
+            } else {
+                const student = students.find(s => s.name === oldName);
+                student.name = newName.trim();
+                saveData();
+                updateTable();
+            }
+        }
+    }
+
+    function updateStudentPerformance(studentName, performance) {
+        const student = students.find(s => s.name === studentName);
+        student.performance = performance;
+        saveData();
+        const row = document.querySelector(`tr[data-student="${studentName}"]`);
+        if (row) {
+            row.classList.remove('student-weak', 'student-average', 'student-strong');
+            row.classList.add(`student-${performance}`);
+        }
+    }
+
+    function updateHasBook(studentName, hasBook) {
+        const student = students.find(s => s.name === studentName);
+        student.hasBook = hasBook;
+        saveData();
+    }
+
+    function updateTable() {
+        const table = document.getElementById('progressTable');
+        const thead = table.querySelector('thead tr');
+        const tbody = table.querySelector('tbody');
+
+        // Clear existing task headers except the first three cells
+        while (thead.cells.length > 3) {
+            thead.deleteCell(3);
+        }
+
+        // Add task headers
+        tasks.forEach(task => {
+            const thTask = document.createElement('th');
+            thTask.textContent = task;
+            thead.appendChild(thTask);
+        });
+
+        // Clear existing rows in tbody
+        tbody.innerHTML = '';
+
+        // Add rows for each student
+        students.forEach((student, index) => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-student', student.name);
+            tr.classList.add(`student-${student.performance}`);
+
+            // Student number cell
+            const tdNumber = document.createElement('td');
+            tdNumber.textContent = index + 1;
+            tdNumber.className = 'student-number';
+            tr.appendChild(tdNumber);
+
+            // Student name cell
+            const tdName = document.createElement('td');
+            tdName.innerHTML = `<strong>${student.name}</strong>`;
+            tdName.style.textAlign = 'left';
+
+            // Action buttons container
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
+
+            // Edit button
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'edit-btn';
+            editBtn.onclick = () => editStudentName(student.name);
+            actionButtons.appendChild(editBtn);
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'Remove';
+            removeBtn.className = 'remove-btn';
+            removeBtn.onclick = () => removeStudent(student.name);
+            actionButtons.appendChild(removeBtn);
+
+            // Performance dropdown
+            const performanceSelect = document.createElement('select');
+            performanceSelect.className = 'performance-select';
+            ['weak', 'average', 'strong'].forEach(performance => {
+                const option = document.createElement('option');
+                option.value = performance;
+                option.textContent = performance.charAt(0).toUpperCase() + performance.slice(1);
+                if (student.performance === performance) option.selected = true;
+                performanceSelect.appendChild(option);
+            });
+            performanceSelect.onchange = (e) => updateStudentPerformance(student.name, e.target.value);
+            actionButtons.appendChild(performanceSelect);
+
+            tdName.appendChild(actionButtons);
+            tr.appendChild(tdName);
+
+            // "Has Book" checkbox
+            const tdBook = document.createElement('td');
+            tdBook.className = 'has-book-cell';
+            const bookCheckbox = document.createElement('input');
+            bookCheckbox.type = 'checkbox';
+            bookCheckbox.checked = student.hasBook;
+            bookCheckbox.onchange = (e) => updateHasBook(student.name, e.target.checked);
+            tdBook.appendChild(bookCheckbox);
+            tr.appendChild(tdBook);
+
+            // Cells for each task
+            tasks.forEach(task => {
+                const tdTask = document.createElement('td');
+                tdTask.className = 'task-cell';
+
+                // Checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = student.tasks?.[task]?.completed || false;
+                checkbox.onchange = (e) => updateTaskCompletion(student.name, task, e.target.checked);
+                tdTask.appendChild(checkbox);
+
+                // Note input
+                const noteInput = document.createElement('input');
+                noteInput.type = 'text';
+                noteInput.placeholder = 'Add note';
+                noteInput.className = 'note-input';
+                noteInput.value = student.tasks?.[task]?.note || '';
+                noteInput.onchange = (e) => updateTaskNote(student.name, task, e.target.value);
+                tdTask.appendChild(noteInput);
+
+                tr.appendChild(tdTask);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateTaskCompletion(studentName, taskName, isCompleted) {
+        const student = students.find(s => s.name === studentName);
+        if (!student.tasks) student.tasks = {};
+        if (!student.tasks[taskName]) student.tasks[taskName] = {};
+        student.tasks[taskName].completed = isCompleted;
+        saveData();
+    }
+
+    function updateTaskNote(studentName, taskName, note) {
+        const student = students.find(s => s.name === studentName);
+        if (!student.tasks) student.tasks = {};
+        if (!student.tasks[taskName]) student.tasks[taskName] = {};
+        student.tasks[taskName].note = note;
+        saveData();
+    }
+
+    async function downloadPDF() {
+        const date = selectedDate;
+        const formattedDate = date ? date : 'No_Date_Selected';
+
+        const element = document.getElementById('printableArea');
+
+        // Use html2canvas to capture the element as an image
+        const canvas = await html2canvas(element, { scale: 2 });
+
+        const imgData = canvas.toDataURL('image/png');
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Student_Progress_${formattedDate}.pdf`);
+    }
+
+    function clearData() {
+        if (confirm('Are you sure you want to clear data for the selected date? This action cannot be undone.')) {
+            delete trackerData[selectedDate];
+            localStorage.setItem('trackerData', JSON.stringify(trackerData));
+            loadData();
+            updateTable();
+        }
+    }
+
+    // Set the date picker to today's date by default and load data
+    document.getElementById('selectedDate').valueAsDate = new Date();
+    selectedDate = document.getElementById('selectedDate').value;
+    loadData();
+    updateTable();
+
+    // Add Enter key functionality for adding tasks
+    document.getElementById('taskName').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            addTask();
+        }
+    });
+</script>
+</body>
+</html>
